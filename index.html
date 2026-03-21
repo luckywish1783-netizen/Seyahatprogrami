@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Seyahat Planlayıcı</title>
+<style>
+:root {
+  --bg:#fff;--bg2:#f6f6f6;--bg3:#ececec;--bg4:#e0e0e0;
+  --text:#111;--text2:#555;--text3:#888;
+  --border:#ddd;--border2:#bbb;
+  --accent:#2563eb;--accent-bg:#eff6ff;--accent-border:#bfdbfe;
+  --danger:#dc2626;--danger-bg:#fef2f2;
+  --success:#16a34a;--success-bg:#f0fdf4;
+  --warn:#d97706;--warn-bg:#fffbeb;
+  --radius:8px;--radius-lg:12px;
+  --font:'Segoe UI',system-ui,sans-serif;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#161616;--bg2:#1f1f1f;--bg3:#2a2a2a;--bg4:#333;
+    --text:#e8e8e8;--text2:#aaa;--text3:#666;
+    --border:#2e2e2e;--border2:#444;
+    --accent:#3b82f6;--accent-bg:#1e3a5f;--accent-border:#2a4f8a;
+    --danger:#ef4444;--danger-bg:#3b0f0f;
+    --success:#22c55e;--success-bg:#0f2e1a;
+    --warn:#f59e0b;--warn-bg:#2e1f00;
+    --shadow:0 1px 3px rgba(0,0,0,.3);
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;line-height:1.5}
+input,select,textarea,button{font-family:var(--font);font-size:14px;color:var(--text)}
+input,select,textarea{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:9px 12px;width:100%;outline:none;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+select option{background:var(--bg)}
+
+/* SCREENS */
+.screen{display:none;min-height:100vh}
+.screen.active{display:block}
+
+/* ── ONBOARDING ── */
+#screen-welcome{background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
+.welcome-box{max-width:480px;width:100%;text-align:center}
+.welcome-icon{font-size:56px;margin-bottom:16px}
+.welcome-title{font-size:28px;font-weight:700;color:var(--text);margin-bottom:8px}
+.welcome-sub{font-size:15px;color:var(--text2);margin-bottom:32px;line-height:1.6}
+.welcome-btn{display:inline-flex;align-items:center;gap:8px;padding:13px 32px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-lg);font-size:15px;font-weight:600;cursor:pointer;transition:opacity .15s}
+.welcome-btn:hover{opacity:.9}
+
+/* ── SETUP FORM ── */
+#screen-setup{padding:0}
+.setup-header{background:var(--accent);color:#fff;padding:20px 20px 16px;position:sticky;top:0;z-index:10}
+.setup-header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.setup-header-title{font-size:17px;font-weight:700}
+.setup-progress{font-size:12px;opacity:.8}
+.progress-bar{height:3px;background:rgba(255,255,255,.3);border-radius:2px;margin-top:8px}
+.progress-fill{height:100%;background:#fff;border-radius:2px;transition:width .3s}
+
+.setup-body{padding:20px;max-width:560px;margin:0 auto;padding-bottom:100px}
+.form-section{margin-bottom:28px}
+.form-section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.form-section-title span{font-size:16px}
+.form-grid{display:grid;gap:10px}
+.form-grid-2{grid-template-columns:1fr 1fr}
+.form-label{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px;display:block}
+.form-group{display:flex;flex-direction:column}
+.form-hint{font-size:11px;color:var(--text3);margin-top:4px}
+.form-opt{font-size:11px;color:var(--text3);margin-left:4px;font-weight:400}
+
+.tag-group{display:flex;flex-wrap:wrap;gap:6px}
+.tag-btn{padding:6px 12px;border:1px solid var(--border);border-radius:20px;background:var(--bg2);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;color:var(--text2)}
+.tag-btn.selected{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent)}
+
+.api-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;margin-bottom:20px}
+.api-box-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.api-box-sub{font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.5}
+.api-input-row{display:flex;gap:8px}
+.api-input-row input{flex:1}
+.api-toggle{padding:9px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;font-size:13px;color:var(--text2);white-space:nowrap}
+.api-status{font-size:11px;margin-top:6px;padding:5px 10px;border-radius:var(--radius);display:none}
+.api-status.ok{display:block;background:var(--success-bg);color:var(--success)}
+.api-status.err{display:block;background:var(--danger-bg);color:var(--danger)}
+
+.setup-footer{position:fixed;bottom:0;left:0;right:0;padding:16px 20px;background:var(--bg);border-top:1px solid var(--border);display:flex;gap:10px;z-index:10}
+.btn-primary{flex:1;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-lg);font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s}
+.btn-primary:hover{opacity:.9}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-secondary{padding:12px 20px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:var(--radius-lg);font-size:14px;font-weight:600;cursor:pointer}
+
+/* ── LOADING ── */
+#screen-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;text-align:center}
+.loading-icon{font-size:48px;margin-bottom:20px;animation:spin 2s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-title{font-size:20px;font-weight:700;margin-bottom:8px}
+.loading-sub{font-size:14px;color:var(--text2);max-width:320px;line-height:1.6}
+.loading-steps{margin-top:24px;text-align:left;max-width:300px}
+.loading-step{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:13px;color:var(--text3);border-bottom:1px solid var(--border)}
+.loading-step.active{color:var(--accent);font-weight:600}
+.loading-step.done{color:var(--success)}
+.loading-step-dot{width:8px;height:8px;border-radius:50%;background:var(--bg4);flex-shrink:0}
+.loading-step.active .loading-step-dot{background:var(--accent)}
+.loading-step.done .loading-step-dot{background:var(--success)}
+
+/* ── PROGRAM (Japonya stili) ── */
+#screen-program{padding:0}
+.prog-header{background:var(--bg);border-bottom:1px solid var(--border);padding:14px 16px;position:sticky;top:0;z-index:10}
+.prog-header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
+.prog-trip-name{font-size:16px;font-weight:700;color:var(--text)}
+.prog-trip-dates{font-size:12px;color:var(--text2)}
+.prog-header-actions{display:flex;gap:8px;align-items:center}
+.prog-new-btn{font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-bg);border:1px solid var(--accent-border);padding:5px 11px;border-radius:var(--radius);cursor:pointer}
+.countdown-badge{font-size:11px;font-weight:600;background:var(--accent-bg);color:var(--accent);padding:4px 10px;border-radius:var(--radius)}
+
+.date-strip{display:flex;gap:6px;overflow-x:auto;padding:12px 16px;scrollbar-width:none;background:var(--bg)}
+.date-strip::-webkit-scrollbar{display:none}
+.date-btn{flex-shrink:0;padding:7px 11px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg);cursor:pointer;text-align:center;min-width:56px;transition:all .15s;color:var(--text)}
+.date-btn.active{background:var(--accent-bg);border-color:var(--accent-border)}
+.date-btn .dn{font-size:9.5px;color:var(--text2)}
+.date-btn.active .dn{color:var(--accent)}
+.date-btn .dd{font-size:16px;font-weight:700;color:var(--text)}
+.date-btn.active .dd{color:var(--accent)}
+.date-btn .dc{font-size:8.5px;color:var(--text3);margin-top:1px}
+.date-btn.active .dc{color:var(--accent)}
+
+.weather-card{margin:0 16px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:10px 14px;display:flex;align-items:center;justify-content:space-between}
+.w-left{display:flex;align-items:center;gap:10px}
+.w-icon{font-size:26px;line-height:1}
+.w-temp{font-size:20px;font-weight:700;color:var(--text)}
+.w-range{font-size:12px;color:var(--text2)}
+.w-right{text-align:right}
+.w-desc{font-size:12px;color:var(--text2)}
+.w-tip{font-size:11px;color:var(--text3);margin-top:2px;max-width:180px}
+
+.sec-label{font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.06em;text-transform:uppercase;padding:0 16px 8px;display:flex;align-items:center;justify-content:space-between}
+.add-btn{font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-bg);border:1px solid var(--accent-border);padding:4px 12px;border-radius:var(--radius);cursor:pointer}
+
+.timeline{padding:0 16px}
+.tl-item{display:flex;gap:10px;margin-bottom:4px}
+.tl-time{width:42px;flex-shrink:0;font-size:11px;color:var(--text3);padding-top:10px;text-align:right;line-height:1.3}
+.tl-mid{width:18px;flex-shrink:0;display:flex;flex-direction:column;align-items:center}
+.dot{width:10px;height:10px;border-radius:50%;margin-top:8px;flex-shrink:0;border:2px solid var(--bg)}
+.dot-tren{background:#2563eb}.dot-gezi{background:#16a34a}.dot-yemek{background:#dc2626}
+.dot-otel{background:#7c3aed}.dot-gece{background:#be185d}.dot-ucus{background:#6b7280}.dot-hotel{background:#7c3aed}
+.tl-line{flex:1;width:2px;background:var(--border);margin-top:2px}
+.ev-card{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:9px 12px;margin-bottom:4px;cursor:pointer;transition:border-color .15s;position:relative}
+.ev-card:hover{border-color:var(--border2)}
+.ev-card.active{border-color:var(--accent-border);background:var(--accent-bg)}
+.ev-card.ev-return{background:var(--bg2)}
+.ev-title{font-size:13px;font-weight:600;color:var(--text)}
+.ev-card.active .ev-title{color:var(--accent)}
+.ev-sub{font-size:11px;color:var(--text2);margin-top:2px}
+.ev-badges{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.badge{font-size:9.5px;padding:2px 7px;border-radius:var(--radius);font-weight:600}
+.badge-tren{background:#eff6ff;color:#1d4ed8}.badge-gezi{background:#f0fdf4;color:#15803d}
+.badge-yemek{background:#fef2f2;color:#b91c1c}.badge-otel{background:#f5f3ff;color:#6d28d9}
+.badge-gece{background:#fdf2f8;color:#9d174d}.badge-rez{background:#fef2f2;color:#991b1b}
+@media(prefers-color-scheme:dark){
+  .badge-tren{background:#1e3a6e;color:#93c5fd}.badge-gezi{background:#14532d;color:#86efac}
+  .badge-yemek{background:#450a0a;color:#fca5a5}.badge-otel{background:#2e1065;color:#c4b5fd}
+  .badge-gece{background:#4a044e;color:#f0abfc}.badge-rez{background:#450a0a;color:#fca5a5}
+}
+.ev-actions{position:absolute;top:8px;right:8px;display:none;gap:4px}
+.ev-card:hover .ev-actions{display:flex}
+.ev-edit{font-size:11px;background:var(--accent-bg);color:var(--accent);border:none;padding:2px 8px;border-radius:var(--radius);cursor:pointer;font-weight:600}
+.ev-del{font-size:11px;background:var(--danger-bg);color:var(--danger);border:none;padding:2px 8px;border-radius:var(--radius);cursor:pointer;font-weight:600}
+
+.detail-panel{margin:4px 16px 0;background:var(--bg);border:1px solid var(--accent-border);border-radius:var(--radius-lg);overflow:hidden;display:none}
+.detail-panel.open{display:block}
+.detail-header{background:var(--accent-bg);padding:10px 14px;display:flex;align-items:center;justify-content:space-between}
+.detail-htitle{font-size:13px;font-weight:600;color:var(--accent)}
+.detail-close{font-size:20px;cursor:pointer;color:var(--accent);background:none;border:none;padding:0;line-height:1;font-family:var(--font)}
+.detail-body{padding:12px 14px}
+.det-row{display:flex;gap:8px;margin-bottom:8px;align-items:flex-start}
+.det-key{font-size:11px;color:var(--text2);width:52px;flex-shrink:0;padding-top:1px;font-weight:600}
+.det-val{font-size:12px;color:var(--text);flex:1;line-height:1.5}
+.det-val.warn{color:var(--danger);font-weight:600}
+.det-map{display:block;width:100%;margin-top:10px;padding:9px;text-align:center;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);font-size:12px;font-weight:600;color:var(--accent);text-decoration:none}
+.det-map:hover{background:var(--bg3)}
+
+.add-form{margin:8px 16px 0;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:14px;display:none}
+.add-form.open{display:block}
+.add-form-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px}
+.form-row{display:flex;gap:8px;margin-bottom:8px}
+.form-row input,.form-row select{flex:1}
+.form-row select{min-width:110px;max-width:130px}
+.form-btns{display:flex;gap:8px;margin-top:12px}
+.form-btns button{flex:1;padding:9px;font-size:12px;font-weight:700;font-family:var(--font);border-radius:var(--radius);cursor:pointer;border:1px solid var(--border)}
+.form-save{background:var(--accent-bg);color:var(--accent);border-color:var(--accent-border)}
+.form-cancel{background:var(--bg);color:var(--text2)}
+
+.btabs{display:flex;margin:16px 16px 0;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.tbtn{flex:1;padding:9px 4px;font-size:11px;font-weight:600;color:var(--text2);background:var(--bg2);border:none;cursor:pointer;border-right:1px solid var(--border);transition:all .15s;font-family:var(--font)}
+.tbtn:last-child{border-right:none}
+.tbtn.active{background:var(--bg);color:var(--text)}
+.tab-content{margin:8px 16px 0;display:none}
+.tab-content.active{display:block}
+
+.rez-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px}
+.rez-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.rez-dot.zorunlu{background:#dc2626}.rez-dot.onerilen{background:#d97706}.rez-dot.bilet{background:#16a34a}
+.rez-name{font-size:13px;font-weight:600;color:var(--text)}
+.rez-meta{font-size:11px;color:var(--text2);margin-top:1px}
+.rez-phone{font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;padding:0;font-family:var(--font);font-weight:600}
+
+.tr-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:6px}
+.tr-route{font-size:13px;font-weight:600;color:var(--text)}
+.tr-detail{font-size:11px;color:var(--text2);margin-top:3px;line-height:1.5}
+.tr-tag{display:inline-block;margin-top:5px;font-size:9.5px;padding:2px 8px;background:var(--accent-bg);color:var(--accent);border-radius:var(--radius);font-weight:600}
+
+.qgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.qcard{background:var(--bg2);border-radius:var(--radius);padding:10px 12px}
+.qlabel{font-size:10px;color:var(--text2);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.qval{font-size:15px;font-weight:700;color:var(--text)}
+.qsub{font-size:11px;color:var(--text3);margin-top:2px}
+.divider{height:1px;background:var(--border);margin:12px 0}
+.info-text{font-size:12px;color:var(--text2);line-height:1.8}
+.info-text b{color:var(--text)}
+
+.legend{display:flex;flex-wrap:wrap;gap:8px;padding:0 16px 4px}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
+.leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.prog-footer{text-align:center;padding:16px 0 8px}
+.reset-btn{font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;text-decoration:underline;font-family:var(--font)}
+
+/* ERROR */
+.error-box{margin:16px;background:var(--danger-bg);border:1px solid var(--danger);border-radius:var(--radius-lg);padding:14px;display:none}
+.error-box.show{display:block}
+.error-title{font-size:13px;font-weight:700;color:var(--danger);margin-bottom:4px}
+.error-msg{font-size:12px;color:var(--danger);line-height:1.5}
+.error-retry{margin-top:10px;padding:7px 16px;background:var(--danger);color:#fff;border:none;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)}
+</style>
+</head>
+<body>
+
+<!-- ═══ EKRAN 1: HOŞ GELDİN ═══ -->
+<div id="screen-welcome" class="screen active">
+  <div class="welcome-box">
+    <div class="welcome-icon">✈️</div>
+    <h1 class="welcome-title">AI Seyahat Planlayıcı</h1>
+    <p class="welcome-sub">Nereye gitmek istediğini söyle, yapay zeka sana kişiselleştirilmiş günlük program, restoran önerileri ve transfer bilgileri oluştursun.</p>
+    <button class="welcome-btn" onclick="goSetup()">Planlamaya Başla →</button>
+  </div>
+</div>
+
+<!-- ═══ EKRAN 2: FORM ═══ -->
+<div id="screen-setup" class="screen">
+  <div class="setup-header">
+    <div class="setup-header-top">
+      <span class="setup-header-title">Seyahat Detayları</span>
+      <span class="setup-progress" id="form-progress">Adım 1/3</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:33%"></div></div>
+  </div>
+
+  <div class="setup-body">
+
+    <!-- API ANAHTARI -->
+    <div class="api-box" id="api-box">
+      <div class="api-box-title">🔑 API Anahtarı <span style="font-size:11px;font-weight:400;color:var(--text3)">(GitHub Pages için)</span></div>
+      <div class="api-box-sub">Claude.ai'de bu alan atlanabilir. GitHub Pages'de kullanmak için Anthropic API anahtarınızı girin. Anahtar yalnızca tarayıcınızda saklanır.</div>
+      <div class="api-input-row">
+        <input type="password" id="api-key-input" placeholder="sk-ant-..." autocomplete="off">
+        <button class="api-toggle" onclick="toggleKey()">Göster</button>
+        <button class="api-toggle" onclick="testKey()" style="background:var(--accent-bg);color:var(--accent);border-color:var(--accent-border)">Test</button>
+      </div>
+      <div class="api-status" id="api-status"></div>
+      <p style="font-size:11px;color:var(--text3);margin-top:8px">
+        Anahtar al: <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent)">console.anthropic.com</a> → API Keys → Create Key. Claude.ai'de kullanıyorsanız bu alanı boş bırakın.
+      </p>
+    </div>
+
+    <!-- BÖLÜM 1: NEREYE -->
+    <div class="form-section">
+      <div class="form-section-title"><span>🌍</span> Nereye Gidiyorsunuz?</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Ülke / Şehirler *</label>
+          <input type="text" id="f-ulke" placeholder="ör: Japonya – Tokyo, Kyoto, Osaka" required>
+          <span class="form-hint">Birden fazla şehir varsa virgülle ayırın</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Varış Havalimanı *</label>
+          <input type="text" id="f-havaalani-varis" placeholder="ör: Haneda (HND) veya Narita (NRT)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Dönüş Havalimanı <span class="form-opt">opsiyonel</span></label>
+          <input type="text" id="f-havaalani-donus" placeholder="Varışla aynıysa boş bırakın">
+        </div>
+      </div>
+    </div>
+
+    <!-- BÖLÜM 2: TARİHLER -->
+    <div class="form-section">
+      <div class="form-section-title"><span>📅</span> Tarihler ve Saatler</div>
+      <div class="form-grid form-grid-2">
+        <div class="form-group">
+          <label class="form-label">Gidiş Tarihi *</label>
+          <input type="date" id="f-giris-tarih">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Dönüş Tarihi *</label>
+          <input type="date" id="f-cikis-tarih">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Varış Saati *</label>
+          <input type="time" id="f-varis-saat" placeholder="Yerel saatle">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Dönüş Uçuş Saati *</label>
+          <input type="time" id="f-donus-saat" placeholder="Kalkış saati">
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:10px">
+        <label class="form-label">Kişi Sayısı</label>
+        <select id="f-kisi">
+          <option value="1">1 kişi</option>
+          <option value="2" selected>2 kişi</option>
+          <option value="3">3 kişi</option>
+          <option value="4">4 kişi</option>
+          <option value="5+">5+ kişi</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- BÖLÜM 3: OTEL -->
+    <div class="form-section">
+      <div class="form-section-title"><span>🏨</span> Konaklama <span class="form-opt" style="font-size:12px;font-weight:400;text-transform:none;letter-spacing:0">(Opsiyonel)</span></div>
+      <div id="otel-listesi">
+        <div class="form-group otel-item">
+          <label class="form-label">Otel / Bölge</label>
+          <div style="display:flex;gap:8px">
+            <input type="text" placeholder="ör: Shibuya Tokyu Rei veya Shibuya bölgesi" style="flex:1">
+            <input type="text" placeholder="Tarih aralığı (ör: 26-28 Mar)" style="flex:1">
+          </div>
+        </div>
+      </div>
+      <button onclick="otelEkle()" style="margin-top:8px;font-size:12px;color:var(--accent);background:none;border:none;cursor:pointer;font-family:var(--font);font-weight:600">+ Otel Ekle</button>
+    </div>
+
+    <!-- BÖLÜM 4: TERCIHLER -->
+    <div class="form-section">
+      <div class="form-section-title"><span>⚡</span> Gezi Tercihleri</div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label class="form-label">Gezi Temposu</label>
+        <select id="f-tempo">
+          <option value="rahat">Rahat – Az yer, derin gezme, molalar</option>
+          <option value="orta" selected>Orta – Dengeli tempo</option>
+          <option value="yogun">Yoğun – Mümkün olduğunca çok yer</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label class="form-label">Bütçe Seviyesi</label>
+        <select id="f-butce">
+          <option value="ekonomik">Ekonomik – Uygun fiyatlı seçenekler</option>
+          <option value="orta" selected>Orta – Her kategoride seçenek</option>
+          <option value="luks">Lüks – Kalite ön planda</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="margin-bottom:8px">İlgi Alanları (birden fazla seçilebilir)</label>
+        <div class="tag-group" id="ilgi-group">
+          <button class="tag-btn selected" data-val="kültür tapınak tarihi">🏛 Kültür & Tarih</button>
+          <button class="tag-btn selected" data-val="yemek restoran sokak yemeği">🍜 Yemek & Mutfak</button>
+          <button class="tag-btn" data-val="alışveriş market">🛍 Alışveriş</button>
+          <button class="tag-btn" data-val="doğa park bahçe">🌿 Doğa & Parklar</button>
+          <button class="tag-btn" data-val="gece hayatı bar kulüp">🎵 Gece Hayatı</button>
+          <button class="tag-btn" data-val="müze sanat galeri">🎨 Müze & Sanat</button>
+          <button class="tag-btn" data-val="macera aktivite deneyim">🎭 Deneyim & Aktivite</button>
+          <button class="tag-btn" data-val="plaj deniz">🏖 Plaj & Deniz</button>
+          <button class="tag-btn" data-val="spor fitness yürüyüş">🏃 Spor & Yürüyüş</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BÖLÜM 5: EK BİLGİLER -->
+    <div class="form-section">
+      <div class="form-section-title"><span>📝</span> Ek Notlar <span class="form-opt" style="font-size:12px;font-weight:400;text-transform:none;letter-spacing:0">(Opsiyonel)</span></div>
+      <div class="form-group">
+        <label class="form-label">Özel İstekler / Notlar</label>
+        <textarea id="f-notlar" rows="3" placeholder="ör: Vejetaryen yemek tercih ederiz, çocuk var, daha önce Tokyo'ya gittik Kyoto'yu görmek istiyoruz..."></textarea>
+      </div>
+      <div class="form-group" style="margin-top:10px">
+        <label class="form-label">Ulaşım Tercihi</label>
+        <select id="f-ulasim">
+          <option value="toplu" selected>Toplu taşıma (metro, tren, otobüs)</option>
+          <option value="karisik">Karışık (toplu taşıma + taksi)</option>
+          <option value="arac">Araç kiralama</option>
+        </select>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="setup-footer">
+    <button class="btn-secondary" onclick="goWelcome()">← Geri</button>
+    <button class="btn-primary" id="generate-btn" onclick="generateProgram()">🪄 Program Oluştur</button>
+  </div>
+</div>
+
+<!-- ═══ EKRAN 3: YÜKLEME ═══ -->
+<div id="screen-loading" class="screen">
+  <div class="loading-icon">⚙️</div>
+  <div class="loading-title">Program Oluşturuluyor...</div>
+  <div class="loading-sub">Yapay zeka seyahat detaylarınızı analiz ediyor ve kişiselleştirilmiş program hazırlıyor.</div>
+  <div class="loading-steps">
+    <div class="loading-step active" id="step-1"><div class="loading-step-dot"></div>Bilgiler analiz ediliyor...</div>
+    <div class="loading-step" id="step-2"><div class="loading-step-dot"></div>Gezilecek yerler seçiliyor...</div>
+    <div class="loading-step" id="step-3"><div class="loading-step-dot"></div>Restoranlar araştırılıyor...</div>
+    <div class="loading-step" id="step-4"><div class="loading-step-dot"></div>Transferler planlanıyor...</div>
+    <div class="loading-step" id="step-5"><div class="loading-step-dot"></div>Program düzenleniyor...</div>
+  </div>
+  <div class="error-box" id="error-box">
+    <div class="error-title">⚠️ Hata Oluştu</div>
+    <div class="error-msg" id="error-msg"></div>
+    <button class="error-retry" onclick="goSetup()">← Geri Dön</button>
+  </div>
+</div>
+
+<!-- ═══ EKRAN 4: PROGRAM ═══ -->
+<div id="screen-program" class="screen">
+  <div class="prog-header">
+    <div class="prog-header-top">
+      <div>
+        <div class="prog-trip-name" id="prog-title">Seyahat Programı</div>
+        <div class="prog-trip-dates" id="prog-dates"></div>
+      </div>
+      <div class="prog-header-actions">
+        <div class="countdown-badge" id="cd-badge">...</div>
+        <button class="prog-new-btn" onclick="goSetup()">Yeni Plan</button>
+      </div>
+    </div>
+  </div>
+  <div class="legend">
+    <div class="leg-item"><div class="leg-dot" style="background:#2563eb"></div>Tren</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#16a34a"></div>Gezi</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#dc2626"></div>Yemek</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#7c3aed"></div>Otel</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#be185d"></div>Gece</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#6b7280"></div>Uçuş</div>
+  </div>
+  <div class="date-strip" id="ds"></div>
+  <div class="weather-card" id="wc" style="display:none"></div>
+  <div class="sec-label" id="sl"><span id="sl-text">Program</span><button class="add-btn" onclick="toggleForm()">+ Ekle</button></div>
+  <div class="timeline" id="tl"></div>
+  <div class="detail-panel" id="dp">
+    <div class="detail-header"><span class="detail-htitle" id="dh"></span><button class="detail-close" onclick="closeDetail()">×</button></div>
+    <div class="detail-body" id="db"></div>
+  </div>
+  <div class="add-form" id="af">
+    <div class="add-form-title" id="form-title">Yeni Etkinlik Ekle</div>
+    <div class="form-row">
+      <input type="text" id="f-time" placeholder="Saat (14:30)" style="max-width:100px">
+      <select id="f-type">
+        <option value="gezi">Gezi</option>
+        <option value="yemek">Yemek</option>
+        <option value="tren">Tren/Ulaşım</option>
+        <option value="otel">Otel</option>
+        <option value="gece">Gece</option>
+        <option value="ucus">Uçuş</option>
+      </select>
+    </div>
+    <div class="form-row"><input type="text" id="f-etitle" placeholder="Etkinlik adı *"></div>
+    <div class="form-row"><input type="text" id="f-esub" placeholder="Kısa açıklama"></div>
+    <div class="form-row"><input type="text" id="f-eadres" placeholder="Adres"></div>
+    <div class="form-row"><input type="text" id="f-eucret" placeholder="Ücret (ör: ¥500)"></div>
+    <div class="form-row"><input type="text" id="f-enot" placeholder="Önemli not"></div>
+    <div class="form-btns">
+      <button class="form-cancel" onclick="toggleForm()">İptal</button>
+      <button class="form-save" id="form-save-btn" onclick="saveEvent()">Kaydet</button>
+    </div>
+  </div>
+  <div class="btabs">
+    <button class="tbtn active" onclick="switchTab('rez',this)">Rezervasyonlar</button>
+    <button class="tbtn" onclick="switchTab('trans',this)">Transferler</button>
+    <button class="tbtn" onclick="switchTab('bilgi',this)">Genel Bilgi</button>
+  </div>
+  <div class="tab-content active" id="tab-rez"></div>
+  <div class="tab-content" id="tab-trans"></div>
+  <div class="tab-content" id="tab-bilgi"></div>
+  <div class="prog-footer">
+    <button class="reset-btn" onclick="resetAll()">Programı Sıfırla</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// DURUM
+// ═══════════════════════════════════════════════
+let TRIP = null;   // {title, dates, info}
+let DAYS = [];     // [{date,day,city,weather,events,transfer}]
+let cur = 0, openEv = null, formOpen = false, editIdx = -1;
+
+const SK = 'ai_seyahat_v1';
+
+// ═══════════════════════════════════════════════
+// EKRAN GEÇİŞLERİ
+// ═══════════════════════════════════════════════
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+function goWelcome() { show('welcome'); }
+function goSetup() {
+  show('setup');
+  // Kayıtlı API anahtarını yükle
+  const k = localStorage.getItem('ai_api_key');
+  if (k) document.getElementById('api-key-input').value = k;
+}
+
+// ═══════════════════════════════════════════════
+// SETUP FORM
+// ═══════════════════════════════════════════════
+function toggleKey() {
+  const inp = document.getElementById('api-key-input');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+async function testKey() {
+  const key = document.getElementById('api-key-input').value.trim();
+  const st = document.getElementById('api-status');
+  if (!key) { st.className = 'api-status err'; st.textContent = 'API anahtarı boş.'; return; }
+  st.className = 'api-status'; st.textContent = 'Test ediliyor...'; st.style.display = 'block';
+  try {
+    const r = await callClaude('Merhaba, sadece "Tamam" de.', key, 50);
+    localStorage.setItem('ai_api_key', key);
+    st.className = 'api-status ok'; st.textContent = '✓ API anahtarı geçerli ve kaydedildi.';
+  } catch(e) {
+    st.className = 'api-status err'; st.textContent = '✗ ' + e.message;
+  }
+}
+
+document.querySelectorAll('.tag-btn').forEach(b => {
+  b.addEventListener('click', () => b.classList.toggle('selected'));
+});
+
+function otelEkle() {
+  const div = document.createElement('div');
+  div.className = 'form-group otel-item';
+  div.style.marginTop = '8px';
+  div.innerHTML = `<div style="display:flex;gap:8px">
+    <input type="text" placeholder="Otel adı / bölge" style="flex:1">
+    <input type="text" placeholder="Tarih aralığı" style="flex:1">
+    <button onclick="this.parentElement.parentElement.remove()" style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:16px;padding:0 4px">×</button>
+  </div>`;
+  document.getElementById('otel-listesi').appendChild(div);
+}
+
+function getFormData() {
+  const ilgiler = [...document.querySelectorAll('.tag-btn.selected')].map(b => b.dataset.val).join(', ');
+  const oteller = [...document.querySelectorAll('.otel-item')].map(item => {
+    const inputs = item.querySelectorAll('input');
+    return inputs[0]?.value ? `${inputs[0].value} (${inputs[1]?.value || ''})` : null;
+  }).filter(Boolean);
+
+  return {
+    ulke: document.getElementById('f-ulke').value,
+    havaalani_varis: document.getElementById('f-havaalani-varis').value,
+    havaalani_donus: document.getElementById('f-havaalani-donus').value,
+    giris_tarih: document.getElementById('f-giris-tarih').value,
+    cikis_tarih: document.getElementById('f-cikis-tarih').value,
+    varis_saat: document.getElementById('f-varis-saat').value,
+    donus_saat: document.getElementById('f-donus-saat').value,
+    kisi: document.getElementById('f-kisi').value,
+    tempo: document.getElementById('f-tempo').value,
+    butce: document.getElementById('f-butce').value,
+    ilgiler,
+    oteller,
+    notlar: document.getElementById('f-notlar').value,
+    ulasim: document.getElementById('f-ulasim').value,
+  };
+}
+
+async function generateProgram() {
+  const d = getFormData();
+  if (!d.ulke || !d.giris_tarih || !d.cikis_tarih) {
+    alert('Lütfen ülke ve tarih bilgilerini doldurun.'); return;
+  }
+
+  const apiKey = document.getElementById('api-key-input').value.trim() || null;
+  if (apiKey) localStorage.setItem('ai_api_key', apiKey);
+
+  show('loading');
+  animateSteps();
+
+  const prompt = buildPrompt(d);
+  try {
+    const json = await callClaude(prompt, apiKey, 8000);
+    const parsed = JSON.parse(json);
+    TRIP = parsed.trip;
+    DAYS = parsed.days;
+    saveToStorage();
+    buildProgramScreen();
+    show('program');
+  } catch(e) {
+    document.getElementById('error-box').classList.add('show');
+    document.getElementById('error-msg').textContent = e.message + '\n\nAPI anahtarınızı kontrol edin veya geri dönüp tekrar deneyin.';
+  }
+}
+
+// ═══════════════════════════════════════════════
+// PROMPT OLUŞTURMA
+// ═══════════════════════════════════════════════
+function buildPrompt(d) {
+  const gun = daysBetween(d.giris_tarih, d.cikis_tarih);
+  return `Sen deneyimli bir seyahat planlayıcısısın. Aşağıdaki bilgilere göre eksiksiz bir seyahat programı oluştur.
+
+SEYAHAT BİLGİLERİ:
+- Destinasyon: ${d.ulke}
+- Tarihler: ${d.giris_tarih} – ${d.cikis_tarih} (${gun} gün)
+- Varış havalimanı: ${d.havaalani_varis || 'belirtilmedi'}
+- Dönüş havalimanı: ${d.havaalani_donus || d.havaalani_varis || 'belirtilmedi'}
+- Varış saati: ${d.varis_saat || 'belirtilmedi'}
+- Dönüş uçuşu: ${d.donus_saat || 'belirtilmedi'}
+- Kişi sayısı: ${d.kisi}
+- Tempo: ${d.tempo}
+- Bütçe: ${d.butce}
+- İlgi alanları: ${d.ilgiler || 'genel'}
+- Ulaşım tercihi: ${d.ulasim}
+${d.oteller.length ? `- Oteller: ${d.oteller.join(', ')}` : ''}
+${d.notlar ? `- Özel notlar: ${d.notlar}` : ''}
+
+GÖREVİN:
+Gerçekçi, mantıklı rotalar ve önerilerle dolu günlük program oluştur. Her gün için:
+1. Bölgeye en yakın restoranları seç (uzak yerlere gitme)
+2. Rota mantığına dikkat et (kuzey→güney veya tek yön, geri dönüş olmasın)
+3. Gerçekten var olan yerleri öner
+4. Transfer bilgilerini ekle (hat adı, süre, ücret)
+5. Her günün sonuna otele dönüş ekle
+6. Akşam yemeği için rezervasyon gerekiyorsa belirt
+
+YANIT FORMATI (SADECE JSON, başka hiçbir şey yazma):
+{
+  "trip": {
+    "title": "şehir adı seyahati",
+    "subtitle": "X Mar – Y Nis YYYY · N kişi",
+    "start_date": "YYYY-MM-DD",
+    "end_date": "YYYY-MM-DD",
+    "country": "ülke",
+    "currency": "para birimi simgesi (ör: ¥ veya €)",
+    "emergency": {"polis": "110", "ambulans": "112"},
+    "genel_bilgi": ["madde1", "madde2", "madde3"],
+    "rezervasyonlar": [
+      {"type": "zorunlu|onerilen|bilet", "name": "mekan adı", "tarih": "gün", "saat": "HH:MM", "telefon": "+xx...", "url": ""}
+    ]
+  },
+  "days": [
+    {
+      "date": "26 Mar",
+      "day": "Per",
+      "city": "şehir",
+      "weather": {"icon": "🌤", "hi": 18, "lo": 10, "desc": "açıklama", "tip": "giysi/hava tavsiyesi"},
+      "events": [
+        {
+          "time": "HH:MM",
+          "type": "ucus|tren|gezi|yemek|otel|gece|hotel",
+          "title": "etkinlik adı",
+          "sub": "kısa açıklama · ücret bilgisi",
+          "badges": ["TREN"],
+          "isReturn": false,
+          "detail": {
+            "adres": "tam adres",
+            "sure": "süre",
+            "ucret": "ücret",
+            "not": "önemli not",
+            "maps": "https://maps.google.com/?q=..."
+          }
+        }
+      ],
+      "transfer": [
+        {"route": "A → B", "detail": "hat adı ve detay", "ucret": "ücret · süre"}
+      ]
+    }
+  ]
+}
+
+BADGE DEĞERLERİ (sadece bunları kullan): UÇUŞ, TREN, SHİNKANSEN, GEZİ, UNESCO, ÜCRETSİZ, KAHVALTI, ÖĞLE, AKŞAM, ATIŞTIRMA, OTEL, TRANSFER, GECE, REZERVASYON, BİLET, KRİTİK, TUR
+
+Türkçe yaz. Sadece JSON döndür, açıklama ekleme.`;
+}
+
+function daysBetween(d1, d2) {
+  return Math.round((new Date(d2) - new Date(d1)) / 86400000) + 1;
+}
+
+// ═══════════════════════════════════════════════
+// API ÇAĞRISI
+// ═══════════════════════════════════════════════
+async function callClaude(prompt, apiKey, maxTokens = 4000) {
+  // Claude.ai artifact modu: inject edilen API'yi kullan
+  const isArtifact = typeof window.claude !== 'undefined' || !apiKey;
+
+  const headers = { 'Content-Type': 'application/json' };
+  if (apiKey) {
+    headers['x-api-key'] = apiKey;
+    headers['anthropic-version'] = '2023-06-01';
+    headers['anthropic-dangerous-direct-browser-access'] = 'true';
+  }
+
+  const body = {
+    model: 'claude-sonnet-4-5',
+    max_tokens: maxTokens,
+    messages: [{ role: 'user', content: prompt }]
+  };
+
+  const url = 'https://api.anthropic.com/v1/messages';
+
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body)
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `HTTP ${resp.status}: API isteği başarısız.`);
+  }
+
+  const data = await resp.json();
+  return data.content[0].text;
+}
+
+// ═══════════════════════════════════════════════
+// LOADING ANİMASYONU
+// ═══════════════════════════════════════════════
+function animateSteps() {
+  const steps = [1,2,3,4,5];
+  const delays = [0, 1500, 3000, 5000, 7000];
+  steps.forEach((s, i) => {
+    setTimeout(() => {
+      document.querySelectorAll('.loading-step').forEach(el => el.classList.remove('active'));
+      if (i > 0) document.getElementById('step-' + steps[i-1]).classList.add('done');
+      document.getElementById('step-' + s).classList.add('active');
+    }, delays[i]);
+  });
+}
+
+// ═══════════════════════════════════════════════
+// PROGRAM EKRANI
+// ═══════════════════════════════════════════════
+function buildProgramScreen() {
+  document.getElementById('prog-title').textContent = TRIP.title;
+  document.getElementById('prog-dates').textContent = TRIP.subtitle;
+  buildCountdown();
+  buildStrip();
+  if (DAYS.length > 0) renderDay(DAYS[0]);
+}
+
+function buildCountdown() {
+  const badge = document.getElementById('cd-badge');
+  if (!TRIP?.start_date) return;
+  const diff = Math.ceil((new Date(TRIP.start_date) - new Date()) / 86400000);
+  badge.textContent = diff > 0 ? diff + ' gün kaldı!' : diff === 0 ? 'Bugün uçuyoruz!' : 'Seyahat tamamlandı';
+}
+
+function buildStrip() {
+  const s = document.getElementById('ds');
+  s.innerHTML = '';
+  DAYS.forEach((d, i) => {
+    const b = document.createElement('button');
+    b.className = 'date-btn' + (i === 0 ? ' active' : '');
+    b.innerHTML = `<div class="dn">${d.day}</div><div class="dd">${d.date.split(' ')[0]}</div><div class="dc">${d.city}</div>`;
+    b.onclick = () => selectDay(i);
+    s.appendChild(b);
+  });
+}
+
+function selectDay(i) {
+  cur = i; closeDetail(); closeForm();
+  document.querySelectorAll('.date-btn').forEach((b, j) => b.classList.toggle('active', j === i));
+  renderDay(DAYS[i]);
+  document.getElementById('ds').children[i].scrollIntoView({ behavior: 'smooth', inline: 'center' });
+}
+
+function renderDay(d) {
+  const wc = document.getElementById('wc');
+  if (d.weather) {
+    wc.style.display = 'flex';
+    wc.innerHTML = `
+      <div class="w-left"><div class="w-icon">${d.weather.icon}</div><div>
+        <div class="w-temp">${d.weather.hi}°C</div><div class="w-range">gece ${d.weather.lo}°C</div>
+      </div></div>
+      <div class="w-right"><div class="w-desc">${d.weather.desc}</div><div class="w-tip">${d.weather.tip}</div></div>`;
+  } else { wc.style.display = 'none'; }
+  document.getElementById('sl-text').textContent = d.date + ' — ' + d.city;
+  buildTimeline(d);
+  renderTabs(d);
+}
+
+function buildTimeline(d) {
+  const tl = document.getElementById('tl');
+  tl.innerHTML = '';
+  (d.events || []).forEach((ev, i) => {
+    const last = i === d.events.length - 1;
+    const dc = ev.isReturn ? 'dot-hotel' : 'dot-' + ev.type;
+    const item = document.createElement('div');
+    item.className = 'tl-item';
+    item.innerHTML = `
+      <div class="tl-time">${ev.time}</div>
+      <div class="tl-mid"><div class="dot ${dc}"></div>${!last ? '<div class="tl-line"></div>' : ''}</div>
+      <div class="ev-card${ev.isReturn ? ' ev-return' : ''}" id="ev${i}">
+        <div class="ev-title">${ev.title}</div>
+        <div class="ev-sub">${ev.sub || ''}</div>
+        <div class="ev-badges">${(ev.badges || []).map(b => `<span class="badge badge-${bt(b)}">${b}</span>`).join('')}</div>
+        <div class="ev-actions">
+          <button class="ev-edit" onclick="editEvent(${i},event)">Düzenle</button>
+          <button class="ev-del" onclick="delEvent(${i},event)">Sil</button>
+        </div>
+      </div>`;
+    item.querySelector('.ev-card').addEventListener('click', () => openDetail(i, ev));
+    tl.appendChild(item);
+  });
+}
+
+function bt(b) {
+  if (['TREN', 'SHİNKANSEN', 'TUR'].includes(b)) return 'tren';
+  if (['GEZİ', 'UNESCO', 'ÜCRETSİZ', 'BİLET ALINDI'].includes(b)) return 'gezi';
+  if (['YEMEK', 'KAHVALTI', 'ÖĞLE', 'AKŞAM', 'ATIŞTIRMA'].includes(b)) return 'yemek';
+  if (['OTEL', 'TRANSFER'].includes(b)) return 'otel';
+  if (['GECE'].includes(b)) return 'gece';
+  if (['REZERVASYON', 'BİLET', 'KRİTİK'].includes(b)) return 'rez';
+  return 'gezi';
+}
+
+function openDetail(i, ev) {
+  const p = document.getElementById('dp');
+  document.querySelectorAll('.ev-card').forEach(c => c.classList.remove('active'));
+  if (openEv === i) { p.classList.remove('open'); openEv = null; return; }
+  openEv = i;
+  document.getElementById('ev' + i).classList.add('active');
+  document.getElementById('dh').textContent = ev.title;
+  document.getElementById('db').innerHTML = `
+    ${ev.detail?.adres ? `<div class="det-row"><div class="det-key">Adres</div><div class="det-val">${ev.detail.adres}</div></div>` : ''}
+    ${ev.detail?.sure ? `<div class="det-row"><div class="det-key">Süre</div><div class="det-val">${ev.detail.sure}</div></div>` : ''}
+    ${ev.detail?.ucret ? `<div class="det-row"><div class="det-key">Ücret</div><div class="det-val">${ev.detail.ucret}</div></div>` : ''}
+    ${ev.detail?.not ? `<div class="det-row"><div class="det-key">Not</div><div class="det-val warn">${ev.detail.not}</div></div>` : ''}
+    ${ev.detail?.maps ? `<a class="det-map" href="${ev.detail.maps}" target="_blank">🗺 Haritada Göster</a>` : ''}`;
+  p.classList.add('open');
+}
+
+function closeDetail() {
+  openEv = null;
+  document.getElementById('dp').classList.remove('open');
+  document.querySelectorAll('.ev-card').forEach(c => c.classList.remove('active'));
+}
+
+// ═══════════════════════════════════════════════
+// EKLEME / SİLME / DÜZENLEME
+// ═══════════════════════════════════════════════
+function toMin(t) {
+  if (!t || t.startsWith('→') || t === '—') return 9999;
+  const p = t.replace(/[^0-9:]/g, '').split(':');
+  return parseInt(p[0] || 0) * 100 + parseInt(p[1] || 0);
+}
+
+function toggleForm() {
+  formOpen = !formOpen;
+  const f = document.getElementById('af');
+  if (formOpen) {
+    editIdx = -1;
+    document.getElementById('form-title').textContent = 'Yeni Etkinlik Ekle';
+    document.getElementById('form-save-btn').textContent = 'Kaydet';
+    ['f-time','f-etitle','f-esub','f-eadres','f-eucret','f-enot'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('f-type').value = 'gezi';
+    f.classList.add('open');
+    f.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } else { f.classList.remove('open'); editIdx = -1; }
+}
+
+function closeForm() { formOpen = false; editIdx = -1; document.getElementById('af').classList.remove('open'); }
+
+function editEvent(i, e) {
+  e.stopPropagation();
+  const ev = DAYS[cur].events[i];
+  editIdx = i;
+  document.getElementById('form-title').textContent = 'Etkinliği Düzenle';
+  document.getElementById('form-save-btn').textContent = 'Güncelle';
+  document.getElementById('f-time').value = ev.time?.startsWith('→') ? '' : (ev.time || '');
+  document.getElementById('f-type').value = ev.type === 'hotel' ? 'otel' : (ev.type || 'gezi');
+  document.getElementById('f-etitle').value = ev.title || '';
+  document.getElementById('f-esub').value = ev.sub || '';
+  document.getElementById('f-eadres').value = ev.detail?.adres !== '—' ? (ev.detail?.adres || '') : '';
+  document.getElementById('f-eucret').value = ev.detail?.ucret !== '—' ? (ev.detail?.ucret || '') : '';
+  document.getElementById('f-enot').value = ev.detail?.not || '';
+  formOpen = true;
+  const f = document.getElementById('af');
+  f.classList.add('open');
+  f.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  closeDetail();
+}
+
+function delEvent(i, e) {
+  e.stopPropagation();
+  if (!confirm('Bu etkinliği silmek istediğinizden emin misiniz?')) return;
+  DAYS[cur].events.splice(i, 1);
+  if (openEv === i) closeDetail();
+  buildTimeline(DAYS[cur]);
+  saveToStorage();
+}
+
+function saveEvent() {
+  const time = document.getElementById('f-time').value.trim() || '—';
+  const type = document.getElementById('f-type').value;
+  const title = document.getElementById('f-etitle').value.trim();
+  const sub = document.getElementById('f-esub').value.trim();
+  const adres = document.getElementById('f-eadres').value.trim();
+  const ucret = document.getElementById('f-eucret').value.trim() || '—';
+  const not = document.getElementById('f-enot').value.trim();
+  if (!title) { alert('Etkinlik adı giriniz.'); return; }
+  const lbl = ({ gezi: 'GEZİ', yemek: 'YEMEK', tren: 'TREN', otel: 'OTEL', gece: 'GECE', ucus: 'UÇUŞ' })[type] || 'GEZİ';
+
+  if (editIdx > -1) {
+    const ex = DAYS[cur].events[editIdx];
+    ex.time = time; ex.type = type; ex.title = title; ex.sub = sub || type; ex.badges = [lbl];
+    ex.detail = { adres: adres || '—', sure: ex.detail?.sure || '—', ucret, not, maps: adres ? `https://maps.google.com/?q=${encodeURIComponent(adres)}` : (ex.detail?.maps || 'https://maps.google.com') };
+    DAYS[cur].events.sort((a, b) => { if (a.isReturn && !b.isReturn) return 1; if (!a.isReturn && b.isReturn) return -1; return toMin(a.time) - toMin(b.time); });
+  } else {
+    const ev = { time, type, title, sub: sub || type, badges: [lbl], detail: { adres: adres || '—', sure: '—', ucret, not, maps: adres ? `https://maps.google.com/?q=${encodeURIComponent(adres)}` : 'https://maps.google.com' } };
+    const nm = toMin(time);
+    let idx = DAYS[cur].events.length;
+    for (let i = 0; i < DAYS[cur].events.length; i++) { if (toMin(DAYS[cur].events[i].time) > nm) { idx = i; break; } }
+    DAYS[cur].events.splice(idx, 0, ev);
+  }
+
+  ['f-time','f-etitle','f-esub','f-eadres','f-eucret','f-enot'].forEach(id => document.getElementById(id).value = '');
+  editIdx = -1;
+  closeForm();
+  buildTimeline(DAYS[cur]);
+  saveToStorage();
+}
+
+// ═══════════════════════════════════════════════
+// SEKMELER
+// ═══════════════════════════════════════════════
+function renderTabs(d) {
+  // Rezervasyonlar
+  const rezDiv = document.getElementById('tab-rez');
+  const rezList = TRIP?.rezervasyonlar || [];
+  rezDiv.innerHTML = rezList.length ? rezList.map(r => `
+    <div class="rez-card">
+      <div class="rez-dot ${r.type}"></div>
+      <div style="flex:1"><div class="rez-name">${r.name}</div><div class="rez-meta">${r.tarih}${r.saat ? ', ' + r.saat : ''}</div></div>
+      ${r.telefon ? `<button class="rez-phone" onclick="alert('${r.telefon}')">${r.telefon}</button>` : (r.url ? `<a href="${r.url}" target="_blank" class="rez-phone">Bilet Al</a>` : '')}
+    </div>`).join('') : '<p style="font-size:13px;color:var(--text2);padding:12px 0">Henüz rezervasyon yok.</p>';
+
+  // Transferler
+  document.getElementById('tab-trans').innerHTML = (d.transfer || []).map(t => `
+    <div class="tr-card">
+      <div class="tr-route">${t.route}</div>
+      <div class="tr-detail">${t.detail}</div>
+      <span class="tr-tag">${t.ucret}</span>
+    </div>`).join('') || '<p style="font-size:13px;color:var(--text2);padding:12px 0">Bu gün transfer bilgisi yok.</p>';
+
+  // Genel bilgi
+  const bg = document.getElementById('tab-bilgi');
+  if (!bg.dataset.r) {
+    const info = TRIP?.genel_bilgi || [];
+    const em = TRIP?.emergency || {};
+    bg.innerHTML = `
+      <div class="qgrid">
+        <div class="qcard"><div class="qlabel">Polis</div><div class="qval">${em.polis || '112'}</div></div>
+        <div class="qcard"><div class="qlabel">Ambulans</div><div class="qval">${em.ambulans || '112'}</div></div>
+      </div>
+      <div class="divider"></div>
+      <div class="info-text">${info.map(i => `• ${i}`).join('<br>')}</div>`;
+    bg.dataset.r = '1';
+  }
+}
+
+function switchTab(n, b) {
+  document.querySelectorAll('.tbtn').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+  document.getElementById('tab-' + n).classList.add('active');
+}
+
+// ═══════════════════════════════════════════════
+// LOCALSTORAGE
+// ═══════════════════════════════════════════════
+function saveToStorage() {
+  try { localStorage.setItem(SK, JSON.stringify({ TRIP, DAYS })); } catch(e) {}
+}
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(SK);
+    if (!raw) return false;
+    const d = JSON.parse(raw);
+    if (!d.TRIP || !d.DAYS) return false;
+    TRIP = d.TRIP; DAYS = d.DAYS;
+    return true;
+  } catch(e) { return false; }
+}
+
+function resetAll() {
+  if (!confirm('Program silinecek ve başa döneceksiniz. Emin misiniz?')) return;
+  localStorage.removeItem(SK);
+  TRIP = null; DAYS = [];
+  show('welcome');
+}
+
+// ═══════════════════════════════════════════════
+// BAŞLANGIÇ
+// ═══════════════════════════════════════════════
+if (loadFromStorage() && TRIP && DAYS.length) {
+  buildProgramScreen();
+  show('program');
+}
+</script>
+</body>
+</html>
