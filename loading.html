@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Program Oluşturuluyor — AI Planlayıcı</title>
+<link rel="stylesheet" href="style.css">
+<style>
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:40px 24px;text-align:center}
+.loading-icon{font-size:52px;margin-bottom:20px;display:block;animation:spin 2s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-title{font-size:22px;font-weight:700;margin-bottom:8px}
+.loading-sub{font-size:14px;color:var(--text2);max-width:320px;line-height:1.65;margin-bottom:28px}
+.steps{text-align:left;width:100%;max-width:300px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.step{display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text3);transition:all .3s}
+.step:last-child{border-bottom:none}
+.step.active{color:var(--accent);font-weight:600;background:var(--accent-bg)}
+.step.done{color:var(--success)}
+.step-dot{width:8px;height:8px;border-radius:50%;background:var(--bg4);flex-shrink:0;transition:background .3s}
+.step.active .step-dot{background:var(--accent)}
+.step.done .step-dot{background:var(--success)}
+.error-wrap{margin-top:24px;width:100%;max-width:400px}
+.error-actions{display:flex;gap:10px;margin-top:12px;justify-content:center}
+</style>
+</head>
+<body>
+
+<span class="loading-icon">⚙️</span>
+<h1 class="loading-title">Program Oluşturuluyor...</h1>
+<p class="loading-sub">Yapay zeka seyahat detaylarınızı analiz ediyor ve kişiselleştirilmiş programı hazırlıyor.</p>
+
+<div class="steps">
+  <div class="step active" id="s1"><div class="step-dot"></div>Bilgiler analiz ediliyor</div>
+  <div class="step" id="s2"><div class="step-dot"></div>Gezilecek yerler seçiliyor</div>
+  <div class="step" id="s3"><div class="step-dot"></div>Restoranlar araştırılıyor</div>
+  <div class="step" id="s4"><div class="step-dot"></div>Transferler planlanıyor</div>
+  <div class="step" id="s5"><div class="step-dot"></div>Program düzenleniyor</div>
+</div>
+
+<div class="error-wrap">
+  <div class="error-box" id="err">
+    <div class="error-title">⚠️ Hata Oluştu</div>
+    <div class="error-msg" id="err-msg"></div>
+    <div class="error-actions">
+      <a href="setup.html" class="error-retry">← Geri Dön</a>
+      <button class="error-retry" style="background:var(--text2)" onclick="retry()">Tekrar Dene</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SK = 'ai_seyahat_v1';
+
+// Adım animasyonu
+const STEPS = ['s1','s2','s3','s4','s5'];
+const DELAYS = [0, 2000, 4500, 7000, 9500];
+let stepTimers = [];
+
+function startSteps() {
+  DELAYS.forEach((delay, i) => {
+    const t = setTimeout(() => {
+      STEPS.forEach((id, j) => {
+        const el = document.getElementById(id);
+        if (j < i) el.className = 'step done';
+        else if (j === i) el.className = 'step active';
+        else el.className = 'step';
+      });
+    }, delay);
+    stepTimers.push(t);
+  });
+}
+
+function clearSteps() {
+  stepTimers.forEach(t => clearTimeout(t));
+}
+
+function allDone() {
+  STEPS.forEach(id => document.getElementById(id).className = 'step done');
+}
+
+async function callClaude(prompt) {
+  const url = localStorage.getItem('ai_proxy_url') || '';
+  if (!url) throw new Error('Proxy URL bulunamadı. Lütfen setup sayfasına dönüp Proxy URL girin.');
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-5',
+      max_tokens: 8000,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `HTTP ${resp.status}: Proxy isteği başarısız.`);
+  }
+  const data = await resp.json();
+  return data.content[0].text;
+}
+
+function showError(msg) {
+  clearSteps();
+  document.querySelector('.loading-icon').style.animationPlayState = 'paused';
+  document.getElementById('err-msg').textContent = msg;
+  document.getElementById('err').classList.add('show');
+}
+
+async function run() {
+  const prompt = localStorage.getItem('ai_seyahat_prompt');
+
+  if (!prompt) {
+    showError('Form verisi bulunamadı. Lütfen geri dönüp tekrar deneyin.');
+    return;
+  }
+
+  startSteps();
+
+  try {
+    const raw = await callClaude(prompt);
+    // JSON'u ayıkla (kod bloğu varsa temizle)
+    const clean = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
+    const parsed = JSON.parse(clean);
+
+    if (!parsed.trip || !parsed.days) throw new Error('API geçersiz format döndürdü.');
+
+    clearSteps();
+    allDone();
+
+    localStorage.setItem(SK, JSON.stringify({ TRIP: parsed.trip, DAYS: parsed.days }));
+    localStorage.removeItem('ai_seyahat_prompt');
+
+    // Kısa gecikme sonra program sayfasına geç
+    setTimeout(() => { window.location.href = 'program.html'; }, 600);
+
+  } catch(e) {
+    let msg = e.message;
+    if (msg.includes('API anahtarı') || msg.includes('401') || msg.includes('403')) {
+      msg = 'API anahtarı geçersiz veya yetkisiz.\n\nÇözüm: Setup sayfasında API anahtarınızı kontrol edin.\n\nClaude.ai içinden açıyorsanız anahtarı boş bırakın.';
+    } else if (msg.includes('JSON')) {
+      msg = 'Yapay zeka geçersiz yanıt döndürdü.\n\nLütfen tekrar deneyin.';
+    }
+    showError(msg);
+  }
+}
+
+function retry() {
+  document.getElementById('err').classList.remove('show');
+  document.querySelector('.loading-icon').style.animationPlayState = 'running';
+  run();
+}
+
+run();
+</script>
+</body>
+</html>

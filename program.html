@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seyahat Programı — AI Planlayıcı</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.prog-header{background:var(--bg);border-bottom:1px solid var(--border);padding:12px 16px;position:sticky;top:0;z-index:10}
+.prog-header-top{display:flex;align-items:center;justify-content:space-between}
+.prog-trip-name{font-size:16px;font-weight:700;color:var(--text)}
+.prog-trip-dates{font-size:11px;color:var(--text2);margin-top:2px}
+.prog-actions{display:flex;gap:8px;align-items:center}
+.countdown-badge{font-size:11px;font-weight:600;background:var(--accent-bg);color:var(--accent);padding:4px 10px;border-radius:var(--radius)}
+.prog-new-btn{font-size:11px;font-weight:600;color:var(--text2);background:var(--bg2);border:1px solid var(--border);padding:5px 11px;border-radius:var(--radius);cursor:pointer;text-decoration:none}
+.prog-new-btn:hover{background:var(--bg3)}
+.prog-footer{text-align:center;padding:16px 0 32px}
+.reset-btn{font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;text-decoration:underline;font-family:var(--font)}
+.no-data{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;text-align:center;padding:40px 24px}
+.no-data-icon{font-size:48px;margin-bottom:16px}
+.no-data-title{font-size:18px;font-weight:700;margin-bottom:8px}
+.no-data-sub{font-size:14px;color:var(--text2);margin-bottom:24px}
+</style>
+</head>
+<body>
+
+<!-- YÜKLENİYOR -->
+<div id="no-data" class="no-data" style="display:none">
+  <span class="no-data-icon">🗓</span>
+  <div class="no-data-title">Henüz program yok</div>
+  <div class="no-data-sub">Seyahat bilgilerini girerek yapay zeka ile program oluşturun.</div>
+  <a href="setup.html" class="btn-primary">Program Oluştur →</a>
+</div>
+
+<!-- PROGRAM -->
+<div id="prog-wrap" style="display:none">
+  <div class="prog-header">
+    <div class="prog-header-top">
+      <div>
+        <div class="prog-trip-name" id="prog-title">Seyahat Programı</div>
+        <div class="prog-trip-dates" id="prog-dates"></div>
+      </div>
+      <div class="prog-actions">
+        <div class="countdown-badge" id="cd-badge">...</div>
+        <a href="setup.html" class="prog-new-btn">Yeni Plan</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="leg-item"><div class="leg-dot" style="background:#2563eb"></div>Tren</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#16a34a"></div>Gezi</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#dc2626"></div>Yemek</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#7c3aed"></div>Otel</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#be185d"></div>Gece</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#6b7280"></div>Uçuş</div>
+  </div>
+
+  <div class="date-strip" id="ds"></div>
+  <div class="weather-card" id="wc" style="display:none"></div>
+  <div class="sec-label" id="sl">
+    <span id="sl-text">Program</span>
+    <button class="add-btn" onclick="toggleForm()">+ Ekle</button>
+  </div>
+  <div class="timeline" id="tl"></div>
+
+  <!-- DETAY PANELİ -->
+  <div class="detail-panel" id="dp">
+    <div class="detail-header">
+      <span class="detail-htitle" id="dh"></span>
+      <button class="detail-close" onclick="closeDetail()">×</button>
+    </div>
+    <div class="detail-body" id="db"></div>
+  </div>
+
+  <!-- EKLEME / DÜZENLEME FORMU -->
+  <div class="add-form" id="af">
+    <div class="add-form-title" id="form-title">Yeni Etkinlik Ekle</div>
+    <div class="form-row">
+      <input type="text" id="f-time" placeholder="Saat (14:30)" style="max-width:100px">
+      <select id="f-type">
+        <option value="gezi">Gezi</option>
+        <option value="yemek">Yemek</option>
+        <option value="tren">Tren/Ulaşım</option>
+        <option value="otel">Otel</option>
+        <option value="gece">Gece</option>
+        <option value="ucus">Uçuş</option>
+      </select>
+    </div>
+    <div class="form-row"><input type="text" id="f-etitle" placeholder="Etkinlik adı *"></div>
+    <div class="form-row"><input type="text" id="f-esub" placeholder="Kısa açıklama"></div>
+    <div class="form-row"><input type="text" id="f-eadres" placeholder="Adres"></div>
+    <div class="form-row"><input type="text" id="f-eucret" placeholder="Ücret (ör: ¥500)"></div>
+    <div class="form-row"><input type="text" id="f-enot" placeholder="Önemli not"></div>
+    <div class="form-btns">
+      <button class="form-cancel" onclick="toggleForm()">İptal</button>
+      <button class="form-save" id="form-save-btn" onclick="saveEvent()">Kaydet</button>
+    </div>
+  </div>
+
+  <!-- SEKMELER -->
+  <div class="btabs">
+    <button class="tbtn active" onclick="switchTab('rez',this)">Rezervasyonlar</button>
+    <button class="tbtn" onclick="switchTab('trans',this)">Transferler</button>
+    <button class="tbtn" onclick="switchTab('bilgi',this)">Genel Bilgi</button>
+  </div>
+  <div class="tab-content active" id="tab-rez"></div>
+  <div class="tab-content" id="tab-trans"></div>
+  <div class="tab-content" id="tab-bilgi"></div>
+
+  <div class="prog-footer">
+    <button class="reset-btn" onclick="resetAll()">Programı Sıfırla ve Başa Dön</button>
+  </div>
+</div>
+
+<script>
+const SK = 'ai_seyahat_v1';
+let TRIP = null, DAYS = [], cur = 0, openEv = null, formOpen = false, editIdx = -1;
+
+// ── VERİ YÜKLEME ──
+function load() {
+  try {
+    const raw = localStorage.getItem(SK);
+    if (!raw) return false;
+    const d = JSON.parse(raw);
+    if (!d.TRIP || !d.DAYS?.length) return false;
+    TRIP = d.TRIP; DAYS = d.DAYS;
+    return true;
+  } catch(e) { return false; }
+}
+
+function save() {
+  try { localStorage.setItem(SK, JSON.stringify({ TRIP, DAYS })); } catch(e) {}
+}
+
+// ── PROGRAM EKRANI ──
+function init() {
+  if (!load()) {
+    document.getElementById('no-data').style.display = 'flex';
+    return;
+  }
+  document.getElementById('prog-wrap').style.display = 'block';
+  document.getElementById('prog-title').textContent = TRIP.title || 'Seyahat Programı';
+  document.getElementById('prog-dates').textContent = TRIP.subtitle || '';
+  buildCountdown();
+  buildStrip();
+  if (DAYS.length > 0) renderDay(DAYS[0]);
+}
+
+function buildCountdown() {
+  if (!TRIP?.start_date) return;
+  const diff = Math.ceil((new Date(TRIP.start_date) - new Date()) / 86400000);
+  const el = document.getElementById('cd-badge');
+  el.textContent = diff > 0 ? diff + ' gün kaldı!' : diff === 0 ? 'Bugün uçuyoruz!' : 'Tamamlandı';
+}
+
+function buildStrip() {
+  const s = document.getElementById('ds');
+  s.innerHTML = '';
+  DAYS.forEach((d, i) => {
+    const b = document.createElement('button');
+    b.className = 'date-btn' + (i === 0 ? ' active' : '');
+    b.innerHTML = `<div class="dn">${d.day}</div><div class="dd">${d.date?.split(' ')[0] || ''}</div><div class="dc">${d.city}</div>`;
+    b.onclick = () => selectDay(i);
+    s.appendChild(b);
+  });
+}
+
+function selectDay(i) {
+  cur = i; closeDetail(); closeForm();
+  document.querySelectorAll('.date-btn').forEach((b, j) => b.classList.toggle('active', j === i));
+  renderDay(DAYS[i]);
+  document.getElementById('ds').children[i].scrollIntoView({ behavior: 'smooth', inline: 'center' });
+}
+
+function renderDay(d) {
+  const wc = document.getElementById('wc');
+  if (d.weather) {
+    wc.style.display = 'flex';
+    wc.innerHTML = `<div class="w-left"><div class="w-icon">${d.weather.icon}</div><div><div class="w-temp">${d.weather.hi}°C</div><div class="w-range">gece ${d.weather.lo}°C</div></div></div><div class="w-right"><div class="w-desc">${d.weather.desc}</div><div class="w-tip">${d.weather.tip}</div></div>`;
+  } else { wc.style.display = 'none'; }
+  document.getElementById('sl-text').textContent = (d.date || '') + ' — ' + (d.city || '');
+  buildTimeline(d);
+  renderTabs(d);
+}
+
+function buildTimeline(d) {
+  const tl = document.getElementById('tl');
+  tl.innerHTML = '';
+  (d.events || []).forEach((ev, i) => {
+    const last = i === (d.events.length - 1);
+    const dc = ev.isReturn ? 'dot-hotel' : ('dot-' + (ev.type || 'gezi'));
+    const item = document.createElement('div');
+    item.className = 'tl-item';
+    item.innerHTML = `
+      <div class="tl-time">${ev.time || ''}</div>
+      <div class="tl-mid"><div class="dot ${dc}"></div>${!last ? '<div class="tl-line"></div>' : ''}</div>
+      <div class="ev-card${ev.isReturn ? ' ev-return' : ''}" id="ev${i}">
+        <div class="ev-title">${ev.title || ''}</div>
+        <div class="ev-sub">${ev.sub || ''}</div>
+        <div class="ev-badges">${(ev.badges || []).map(b => `<span class="badge badge-${bt(b)}">${b}</span>`).join('')}</div>
+        <div class="ev-actions">
+          <button class="ev-edit" onclick="editEvent(${i},event)">Düzenle</button>
+          <button class="ev-del" onclick="delEvent(${i},event)">Sil</button>
+        </div>
+      </div>`;
+    item.querySelector('.ev-card').addEventListener('click', () => openDetail(i, ev));
+    tl.appendChild(item);
+  });
+}
+
+function bt(b) {
+  if (['TREN','SHİNKANSEN','TUR'].includes(b)) return 'tren';
+  if (['GEZİ','UNESCO','ÜCRETSİZ','BİLET ALINDI'].includes(b)) return 'gezi';
+  if (['YEMEK','KAHVALTI','ÖĞLE','AKŞAM','ATIŞTIRMA'].includes(b)) return 'yemek';
+  if (['OTEL','TRANSFER'].includes(b)) return 'otel';
+  if (['GECE'].includes(b)) return 'gece';
+  if (['REZERVASYON','BİLET','KRİTİK'].includes(b)) return 'rez';
+  return 'gezi';
+}
+
+// ── DETAY ──
+function openDetail(i, ev) {
+  const p = document.getElementById('dp');
+  document.querySelectorAll('.ev-card').forEach(c => c.classList.remove('active'));
+  if (openEv === i) { p.classList.remove('open'); openEv = null; return; }
+  openEv = i;
+  document.getElementById('ev' + i).classList.add('active');
+  document.getElementById('dh').textContent = ev.title || '';
+  document.getElementById('db').innerHTML = `
+    ${ev.detail?.adres ? `<div class="det-row"><div class="det-key">Adres</div><div class="det-val">${ev.detail.adres}</div></div>` : ''}
+    ${ev.detail?.sure ? `<div class="det-row"><div class="det-key">Süre</div><div class="det-val">${ev.detail.sure}</div></div>` : ''}
+    ${ev.detail?.ucret ? `<div class="det-row"><div class="det-key">Ücret</div><div class="det-val">${ev.detail.ucret}</div></div>` : ''}
+    ${ev.detail?.not ? `<div class="det-row"><div class="det-key">Not</div><div class="det-val warn">${ev.detail.not}</div></div>` : ''}
+    ${ev.detail?.maps ? `<a class="det-map" href="${ev.detail.maps}" target="_blank">🗺 Haritada Göster</a>` : ''}`;
+  p.classList.add('open');
+}
+
+function closeDetail() {
+  openEv = null;
+  document.getElementById('dp').classList.remove('open');
+  document.querySelectorAll('.ev-card').forEach(c => c.classList.remove('active'));
+}
+
+// ── EKLEME / SİLME / DÜZENLEME ──
+function toMin(t) {
+  if (!t || t.startsWith('→') || t === '—') return 9999;
+  const p = t.replace(/[^0-9:]/g, '').split(':');
+  return parseInt(p[0] || 0) * 100 + parseInt(p[1] || 0);
+}
+
+function toggleForm() {
+  formOpen = !formOpen;
+  const f = document.getElementById('af');
+  if (formOpen) {
+    editIdx = -1;
+    document.getElementById('form-title').textContent = 'Yeni Etkinlik Ekle';
+    document.getElementById('form-save-btn').textContent = 'Kaydet';
+    ['f-time','f-etitle','f-esub','f-eadres','f-eucret','f-enot'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('f-type').value = 'gezi';
+    f.classList.add('open');
+    f.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } else { f.classList.remove('open'); editIdx = -1; }
+}
+
+function closeForm() {
+  formOpen = false; editIdx = -1;
+  document.getElementById('af').classList.remove('open');
+}
+
+function editEvent(i, e) {
+  e.stopPropagation();
+  const ev = DAYS[cur].events[i];
+  editIdx = i;
+  document.getElementById('form-title').textContent = 'Etkinliği Düzenle';
+  document.getElementById('form-save-btn').textContent = 'Güncelle';
+  document.getElementById('f-time').value = (ev.time?.startsWith('→') ? '' : ev.time) || '';
+  document.getElementById('f-type').value = ev.type === 'hotel' ? 'otel' : (ev.type || 'gezi');
+  document.getElementById('f-etitle').value = ev.title || '';
+  document.getElementById('f-esub').value = ev.sub || '';
+  document.getElementById('f-eadres').value = (ev.detail?.adres !== '—' ? ev.detail?.adres : '') || '';
+  document.getElementById('f-eucret').value = (ev.detail?.ucret !== '—' ? ev.detail?.ucret : '') || '';
+  document.getElementById('f-enot').value = ev.detail?.not || '';
+  formOpen = true;
+  document.getElementById('af').classList.add('open');
+  document.getElementById('af').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  closeDetail();
+}
+
+function delEvent(i, e) {
+  e.stopPropagation();
+  if (!confirm('Bu etkinliği silmek istediğinizden emin misiniz?')) return;
+  DAYS[cur].events.splice(i, 1);
+  if (openEv === i) closeDetail();
+  buildTimeline(DAYS[cur]);
+  save();
+}
+
+function saveEvent() {
+  const time = document.getElementById('f-time').value.trim() || '—';
+  const type = document.getElementById('f-type').value;
+  const title = document.getElementById('f-etitle').value.trim();
+  if (!title) { alert('Etkinlik adı giriniz.'); return; }
+  const sub = document.getElementById('f-esub').value.trim();
+  const adres = document.getElementById('f-eadres').value.trim();
+  const ucret = document.getElementById('f-eucret').value.trim() || '—';
+  const not = document.getElementById('f-enot').value.trim();
+  const lbl = ({ gezi:'GEZİ', yemek:'YEMEK', tren:'TREN', otel:'OTEL', gece:'GECE', ucus:'UÇUŞ' })[type] || 'GEZİ';
+
+  if (editIdx > -1) {
+    const ex = DAYS[cur].events[editIdx];
+    Object.assign(ex, { time, type, title, sub: sub || type, badges: [lbl],
+      detail: { adres: adres || '—', sure: ex.detail?.sure || '—', ucret, not,
+        maps: adres ? `https://maps.google.com/?q=${encodeURIComponent(adres)}` : (ex.detail?.maps || 'https://maps.google.com') }});
+    DAYS[cur].events.sort((a, b) => {
+      if (a.isReturn && !b.isReturn) return 1;
+      if (!a.isReturn && b.isReturn) return -1;
+      return toMin(a.time) - toMin(b.time);
+    });
+  } else {
+    const ev = { time, type, title, sub: sub || type, badges: [lbl],
+      detail: { adres: adres || '—', sure: '—', ucret, not,
+        maps: adres ? `https://maps.google.com/?q=${encodeURIComponent(adres)}` : 'https://maps.google.com' }};
+    const nm = toMin(time);
+    let idx = DAYS[cur].events.length;
+    for (let i = 0; i < DAYS[cur].events.length; i++) {
+      if (toMin(DAYS[cur].events[i].time) > nm) { idx = i; break; }
+    }
+    DAYS[cur].events.splice(idx, 0, ev);
+  }
+  ['f-time','f-etitle','f-esub','f-eadres','f-eucret','f-enot'].forEach(id => document.getElementById(id).value = '');
+  editIdx = -1; closeForm(); buildTimeline(DAYS[cur]); save();
+}
+
+// ── SEKMELER ──
+function renderTabs(d) {
+  // Rezervasyonlar
+  const rezList = TRIP?.rezervasyonlar || [];
+  document.getElementById('tab-rez').innerHTML = rezList.length
+    ? rezList.map(r => `<div class="rez-card">
+        <div class="rez-dot ${r.type}"></div>
+        <div style="flex:1"><div class="rez-name">${r.name}</div><div class="rez-meta">${r.tarih || ''}${r.saat ? ' · ' + r.saat : ''}</div></div>
+        ${r.telefon ? `<button class="rez-phone" onclick="alert('${r.telefon}')">${r.telefon}</button>` : ''}
+        ${r.url ? `<a href="${r.url}" target="_blank" class="rez-phone">Bilet Al</a>` : ''}
+      </div>`).join('')
+    : '<p style="font-size:13px;color:var(--text2);padding:12px 0">Rezervasyon bulunamadı.</p>';
+
+  // Transferler
+  document.getElementById('tab-trans').innerHTML = (d.transfer || []).length
+    ? (d.transfer || []).map(t => `<div class="tr-card"><div class="tr-route">${t.route}</div><div class="tr-detail">${t.detail}</div><span class="tr-tag">${t.ucret}</span></div>`).join('')
+    : '<p style="font-size:13px;color:var(--text2);padding:12px 0">Bu gün için transfer bilgisi yok.</p>';
+
+  // Genel Bilgi
+  const bg = document.getElementById('tab-bilgi');
+  if (!bg.dataset.r && TRIP) {
+    const em = TRIP.emergency || {};
+    const info = TRIP.genel_bilgi || [];
+    bg.innerHTML = `<div class="qgrid" style="margin-bottom:12px">
+      <div class="qcard"><div class="qlabel">Polis</div><div class="qval">${em.polis || '112'}</div></div>
+      <div class="qcard"><div class="qlabel">Ambulans</div><div class="qval">${em.ambulans || '112'}</div></div>
+    </div>
+    <div class="divider"></div>
+    <div class="info-text">${info.map(i => `• ${i}`).join('<br>')}</div>`;
+    bg.dataset.r = '1';
+  }
+}
+
+function switchTab(n, b) {
+  document.querySelectorAll('.tbtn').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+  document.getElementById('tab-' + n).classList.add('active');
+}
+
+function resetAll() {
+  if (!confirm('Program silinecek ve ana sayfaya döneceksiniz. Emin misiniz?')) return;
+  localStorage.removeItem(SK);
+  window.location.href = 'index.html';
+}
+
+init();
+</script>
+</body>
+</html>
